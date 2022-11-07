@@ -9,9 +9,9 @@
   </head>
   <body>
     {% load static %}
-    <img src="{% static 'recipes/media/nav.jpg' %}" alt="home"  />
+    <a href="/"><img src="{% static 'recipes/media/nav.jpg' %}" alt="home" /></a>
 
-    <form action="" method="post">
+    <form action="/" method="post">
       {% csrf_token %} 
       {{form}}
       <label for="ingredients">Ingredients (space separated): </label>
@@ -23,7 +23,7 @@
     
     <ul>
       {% for recipie in recipies %}
-          <li>{{ recipie.name }}</li>
+          <li><a href="{% url 'recipie' recipie.id %}">{{ recipie.name }}</a></li>
           <img src={{ recipie.img }}></a>
       {% endfor %}
     </ul>
