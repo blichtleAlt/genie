@@ -11,9 +11,10 @@
 
   
     {% load static %}
-    <img src="{% static 'recipes/media/nav.jpg' %}" alt="home" />
+    <a href="/"><img src="{% static 'recipes/media/nav.jpg' %}" alt="home" /></a>
+    
 
-    <form action="" method="post">
+    <form action="/" method="post">
       {% csrf_token %} 
       {{form}}
       <label for="ingredients">Ingredients (space separated): </label>
@@ -21,9 +22,21 @@
       <input type="submit" value="OK">
     </form>
 
+    <h1>{{recipe.name}}</h1>
+    <img src="{{recipe.img}}"> 
 
-    
+    <h2>Description</h2> 
+    <p>{{recipe.description}}</p>
 
+    <h2>Ingredients</h2>
+    {% for str in recipe.ingredients_raw_str %}
+    <li> {{str}} </li>
+    {% endfor %}
+
+    <h2>Steps</h2>
+    {% for step in recipe.steps %}
+    <li> {{step}} </li>
+    {% endfor %}
 
 	<!-- <script src="index.js"></script> -->
   </body>
