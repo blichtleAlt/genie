@@ -1,10 +1,9 @@
 import csv
-import json
 import ast
 import os
 import requests
 import django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "recipies.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "recipes.settings")
 django.setup()
 from query.models import Recipe, Ingredient
 from collections import defaultdict
@@ -31,11 +30,9 @@ def getGoogleImg(query):
  
 # Function to convert a CSV to JSON
 # Takes the file paths as arguments
-def makeJson(csvFilePath, jsonFilePath):
+def seedDatabase():
     csvFilePath = r'recipes_w_search_terms.csv'
-    jsonFilePath = r'result.json'
 
-    ingredientsFilePath = r'ingredients.json'
     # create a dictionary
     data = {}
     ingredients = {}
@@ -50,7 +47,7 @@ def makeJson(csvFilePath, jsonFilePath):
         # Convert each row into a dictionary and add it to data
         for rows in csvReader:
             ingredientsList = ast.literal_eval(rows["ingredients"])
-            if (len(ingredientsList) <= 5):
+            if (len(ingredientsList) <= 8):
                 key = rows['name']
                 recipeId = rows['id']
                 data[key] = rows
@@ -63,72 +60,61 @@ def makeJson(csvFilePath, jsonFilePath):
                         prev = ingredients[ingredient]
                     
                         ingredients[ingredient] = {
-                            "recipies": prev.get("recipies") + [recipeId],
+                            "recipes": prev.get("recipes") + [recipeId],
                             "count": prev["count"] + 1
                         }
                     else:
                         ingredients[ingredient] = {
-                            "recipies": [recipeId],
+                            "recipes": [recipeId],
                             "count": 1
                         }
                     
-    # Open a json writer, and use the json.dumps()
-    # function to dump data
-    print("recipies before", count)
+    print("recipes before", count)
 
-    final_recipies = set()
+    final_recipes = set()
     for k, v in ingredients.items():
-        final_recipies = (set(final_recipies) | set(v['recipies']))
+        final_recipes = (set(final_recipes) | set(v['recipes']))
 
     for k, v in list(data.items()):
-        if v['id'] not in final_recipies:
+        if v['id'] not in final_recipes:
             del data[k]
 
-    print("recipies after", len(final_recipies))
-
-    with open(jsonFilePath, 'w', encoding='utf-8') as jsonf:
-        jsonf.write(json.dumps(data, indent=4))
+    print("recipes after", len(final_recipes))
 
     print("Finding Images")
-    sort = dict(sorted(ingredients.items(), key=lambda x: x[1]['count'], reverse=True)[:500])
+    sort = dict(sorted(ingredients.items(), key=lambda x: x[1]['count'], reverse=True)[:2000])
 
-    total = len(sort.keys())
     count = 1
+    total = len(sort.keys())
     for k in sort.keys():
-        print(count, "/", total)
+        print("getting image: ", count, "/", total)
         count += 1
         sort[k]["img"] = getGoogleImg(k)
 
-    with open(ingredientsFilePath, 'w', encoding='utf-8') as jsonf:
-        jsonf.write(json.dumps(sort, indent=4))
+    print("Clearing DB")
+    Recipe.objects.all().delete()
+    Ingredient.objects.all().delete()
 
-def migrate():
-    dirname = os.path.dirname(__file__)
-    jsonFilePath = os.path.join(dirname, 'query/data/result.json')
-    ingredientsJsonFilePath = os.path.join(dirname, 'query/data/ingredients.json')
-
-    jsonRecipies = None
-    ingredients = None
-
-    with open(jsonFilePath, 'r') as jsonf:
-        jsonRecipies = json.load(jsonf)
-
-    with open(ingredientsJsonFilePath, 'r') as jsonf:
-        ingredients = json.load(jsonf)
-
-    for k, v in jsonRecipies.items():
+    count = 1
+    total = len(data.keys())
+    for k, v in data.items():
+        print("inserting recipe: ", count, "/", total)
+        count += 1
         recipeId = v['id']
         recipe = Recipe(id=recipeId, json=v)
         recipe.save()
 
-    for k, v in ingredients.items():
+    count = 1
+    total = len(sort.keys())
+    for k, v in sort.items():
+        print("inserting ingredient: ", count, "/", total)
+        count += 1
         ingredient = Ingredient(name=k, json=v)
         ingredient.save()
 
 
 def main():
-    #makeJson(None, None)
-    migrate()
+    seedDatabase()
 
 if __name__ == "__main__":
     main()
