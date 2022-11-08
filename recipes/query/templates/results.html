@@ -22,8 +22,8 @@
     <br>
     
     <ul>
-      {% for recipie in recipies %}
-          <li><a href="{% url 'recipie' recipie.id %}">{{ recipie.name }}</a></li>
+      {% for recipe in recipes %}
+          <li><a href="{% url 'recipe' recipe.id %}">{{ recipe.name }}</a></li>
           <img src={{ recipie.img }}></a>
       {% endfor %}
     </ul>

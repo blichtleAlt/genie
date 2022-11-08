@@ -1,4 +1,3 @@
-import json
 import requests
 import ast
 
@@ -16,9 +15,12 @@ def getGoogleImg(query):
     """
     url = "https://www.google.com/search?q=" + str(query) + "+image&source=lnms&tbm=isch"
     headers={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
-    html = requests.get(url, headers=headers).text
+    html = requests.get(url, headers=headers)
+    
+    if html.status_code != 200:
+        print(html.text)
 
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html.text, 'html.parser')
     image = next((x for x in soup.find_all('img') if x['src'].find("encrypted") != -1), 0)
 
     if not image:
@@ -27,11 +29,11 @@ def getGoogleImg(query):
 
 def getIngredient(name: str):
     try:
-        return Ingredient.objects.get(name=name).json['recipies']
+        return((Ingredient.objects.filter(name__trigram_similar=name).first().json['recipes']))
     except Exception as e:
         return
 
-def getRecipie(id: str):
+def getRecipe(id: str):
     try:
         js = Recipe.objects.get(id=id).json
         try:
@@ -41,9 +43,7 @@ def getRecipie(id: str):
         try:
             js['steps'] = ast.literal_eval(js['steps'])
         except Exception as e:
-            print(js['steps'])
             js['steps'] = ["Unavailable"]
-
         return js
     except Exception as e:
         return 
@@ -72,17 +72,17 @@ def home(request):
             for f in fetch:
                 if count > 10:
                     break
-                p = getRecipie(str(f))
+                p = getRecipe(str(f))
                 if p is not None:
                     count +=1 
                     result.append(p)
                     
-            return render(request, "results.html", { "recipies": result })
+            return render(request, "results.html", { "recipes": result })
 
     return render(request, "home.html")
 
-def recipie(request, id):
-    r = getRecipie(str(id))
+def recipe(request, id):
+    r = getRecipe(str(id))
     r['img'] = getGoogleImg(r['name'])
 
     return render(request, "recipe.html", context= {"recipe": r})
